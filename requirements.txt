@@ -1,0 +1,9 @@
+streamlit>=1.35,<2
+streamlit-folium>=0.20
+folium>=0.17
+networkx>=3.2
+osmnx>=1.9
+requests>=2.31
+cryptography>=42
+pandas>=2.0
+pytest>=8
