@@ -1,52 +1,143 @@
-"""Optional TomTom live traffic adapter. No synthetic traffic fallback is created."""
-import requests
-from datetime import datetime, timezone
+"""Optional TomTom live traffic adapter.
+No synthetic traffic fallback is created.
+"""
 
-def tomtom_edge_speeds(graph, api_key, timeout=8):
-    """Probe representative graph nodes. Returns edge congestion ratios and explicit source status.
-    TomTom flow probes are point-based; mapping to road edges is approximate, not segment-perfect.
-    """
-    nodes=list(graph.nodes(data=True))
-    if not nodes: return {}, "TomTom live traffic unavailable: empty graph", None
-    # Sample spatially across the graph, bounded to avoid excessive API calls.
-    stride=max(1,len(nodes)//20)
-    sample=nodes[::stride][:20]
-    ratios={}
-    successes=0
-    stamp=None
-    for node,data in sample:
-        if "y" not in data or "x" not in data: continue
-        url=f"https://api.tomtom.com/traffic/services/4/flowSegmentData/absolute/10/json"
+from datetime import datetime, timezone
+import requests
+
+
+def tomtom_edge_speeds(graph, api_key, route=None, timeout=8):
+    """Fetch TomTom traffic ratios along a route."""
+
+    if not api_key or not api_key.strip():
+        return {}, "TomTom unavailable: API key is empty", None
+
+    if not route or len(route) < 2:
+        return {}, "TomTom waiting for an initial route", None
+
+    route_edges = list(zip(route, route[1:]))
+    stride = max(1, len(route_edges) // 20)
+    sampled_edges = route_edges[::stride][:20]
+
+    ratios = {}
+    successes = 0
+    errors = []
+
+    url = (
+        "https://api.tomtom.com/traffic/services/4/"
+        "flowSegmentData/absolute/10/json"
+    )
+
+    for u, v in sampled_edges:
         try:
-            r=requests.get(url,params={"point":f"{data['y']},{data['x']}","key":api_key},timeout=timeout)
-            r.raise_for_status(); payload=r.json()["flowSegmentData"]
-            current=float(payload["currentSpeed"]); free=float(payload["freeFlowSpeed"])
-            ratio=max(.12,min(1.0,current/free)) if free>0 else 1.0
-            successors=list(graph.successors(node))
-            for v in successors:
-                ratios[(str(node),str(v))]=ratio
-            successes+=1
-            stamp=datetime.now(timezone.utc).isoformat()
-        except Exception:
-            continue
-    if not successes:
-        return {}, "TomTom live traffic unavailable; using OpenStreetMap posted speeds", None
-    return ratios, f"TomTom live traffic: {successes} successful point probes (edge mapping approximate)", stamp
+            node_u = graph.nodes[u]
+            node_v = graph.nodes[v]
+
+            lat = (
+                float(node_u["y"]) + float(node_v["y"])
+            ) / 2
+
+            lon = (
+                float(node_u["x"]) + float(node_v["x"])
+            ) / 2
+
+            response = requests.get(
+                url,
+                params={
+                    "point": f"{lat},{lon}",
+                    "key": api_key.strip(),
+                },
+                timeout=timeout,
+            )
+
+            if not response.ok:
+                if len(errors) < 3:
+                    errors.append(f"HTTP {response.status_code}")
+                continue
+
+            flow = response.json().get("flowSegmentData", {})
+
+            current = float(flow["currentSpeed"])
+            free = float(flow["freeFlowSpeed"])
+
+            if free <= 0:
+                continue
+
+            ratio = max(
+                0.12,
+                min(1.0, current / free),
+            )
+
+            ratios[(str(u), str(v))] = ratio
+            successes += 1
+
+        except (
+            requests.RequestException,
+            ValueError,
+            KeyError,
+            TypeError,
+        ) as exc:
+            if len(errors) < 3:
+                errors.append(type(exc).__name__)
+
+    if successes == 0:
+        detail = (
+            ", ".join(errors)
+            if errors
+            else "No usable traffic responses"
+        )
+
+        return (
+            {},
+            f"TomTom unavailable on route: {detail}",
+            None,
+        )
+
+    stamp = datetime.now(timezone.utc).isoformat()
+
+    return (
+        ratios,
+        f"TomTom live traffic: {successes} route-edge "
+        "probes succeeded (approximate edge mapping)",
+        stamp,
+    )
+
 
 def apply_incidents(graph, report, closure_keywords):
-    """Return a copy; only closes roads when a closure keyword and road name can be linked.
-    Does not invent incident locations or modify the original network.
-    """
-    g=graph.copy()
-    lower=report.casefold()
-    closures=[w for w in closure_keywords if w and w in lower]
-    if not closures: return g
-    # Only close named roads explicitly mentioned in the report; no global closure guesses.
-    for u,v,key,data in list(g.edges(keys=True,data=True)):
-        name=str(data.get("name","")).casefold()
-        if name and name in lower and any(w in lower for w in closures):
-            g.remove_edge(u,v,key)
+    """Close named roads only when explicitly linked to a report."""
+
+    g = graph.copy()
+    lower = report.casefold()
+
+    closures = [
+        word
+        for word in closure_keywords
+        if word and word in lower
+    ]
+
+    if not closures:
+        return g
+
+    for u, v, key, data in list(
+        g.edges(keys=True, data=True)
+    ):
+        name = str(data.get("name", "")).casefold()
+
+        if (
+            name
+            and name in lower
+            and any(word in lower for word in closures)
+        ):
+            g.remove_edge(u, v, key)
+
     return g
 
+
 def estimate_edge_minutes(length_m, speed_kmh):
-    return (float(length_m)/1000.0)/max(float(speed_kmh),1.0)*60.0
+    """Estimate travel time for an edge in minutes."""
+
+    return (
+        (float(length_m) / 1000.0)
+        / max(float(speed_kmh), 1.0)
+        * 60.0
+    )
