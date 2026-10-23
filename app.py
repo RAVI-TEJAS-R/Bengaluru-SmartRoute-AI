@@ -1107,11 +1107,17 @@ with st.expander("Algorithm laboratory"):
     )
 
     # Display up to 20 real named labels from the graph.
+    
     example_labels = [
         label
-        for label in labels[:5000]
+        for label in labels
         if not label.startswith("Junction ")
     ][:20]
+
+    # If no named roads exist, show real junction labels instead.
+    if not example_labels:
+        example_labels = labels[:20]
+
 
     if example_labels:
         selected_example = st.selectbox(
