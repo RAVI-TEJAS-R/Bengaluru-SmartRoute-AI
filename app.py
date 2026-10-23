@@ -336,12 +336,9 @@ with st.sidebar:
 
         with st.expander("Advanced options", expanded=False):
             st.caption("Optional settings. You can find a route without filling in an incident report.")
-            traffic_key = st.text_input(
-                "TomTom API key",
-                value=get_tomtom_key(),
-                type="password",
-                help="Used to request traffic data from TomTom. Do not share this key publicly.",
-            )
+            
+            traffic_key = get_tomtom_key()
+
 
             use_live = st.checkbox(
                 "Try to use TomTom live traffic",
