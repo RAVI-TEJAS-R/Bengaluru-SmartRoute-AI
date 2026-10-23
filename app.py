@@ -305,7 +305,7 @@ def resolve(query):
 
         return node_id
 
-        except Exception as error:
+    except Exception as error:
         st.error(
             f"Could not locate '{query}' on the road graph: "
             f"{type(error).__name__}: {error}"
