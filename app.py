@@ -156,16 +156,6 @@ def load_graph():
         return None
 
     try:
-
-
-
-
-@st.cache_resource
-def load_graph():
-    if not os.path.exists(GRAPH_PATH):
-        return None
-
-    try:
         # OSMnx restores the road graph and its numeric
         # geographic attributes from the GraphML file.
         graph = ox.load_graphml(filepath=GRAPH_PATH)
