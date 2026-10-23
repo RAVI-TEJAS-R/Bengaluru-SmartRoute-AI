@@ -23,6 +23,15 @@ from traffic import (
     apply_incidents,
     estimate_edge_minutes,
 )
+def get_tomtom_key():
+    key = os.getenv("TOMTOM_API_KEY", "")
+    if key:
+        return key
+
+    try:
+        return st.secrets.get("TOMTOM_API_KEY", "")
+    except Exception:
+        return ""
 
 
 # --------------------------------------------------
@@ -315,7 +324,7 @@ with st.sidebar:
             st.caption("Optional settings. You can find a route without filling in an incident report.")
             traffic_key = st.text_input(
                 "TomTom API key",
-                value=os.getenv("TOMTOM_API_KEY", ""),
+                value=get_tomtom_key(),
                 type="password",
                 help="Used to request traffic data from TomTom. Do not share this key publicly.",
             )
