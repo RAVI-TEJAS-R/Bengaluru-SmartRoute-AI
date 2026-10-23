@@ -217,18 +217,38 @@ label_to_node, labels, labels_lower = build_label_index()
 # GEOGRAPHIC LOCATION LOOKUP
 # --------------------------------------------------
 
+
 @st.cache_data(ttl=86400)
 def geocode_location(query):
-    """
-    Convert a place name into latitude and longitude.
-    Requires an internet connection.
-    """
+    """Resolve common Bengaluru locations locally before using OSM geocoding."""
+
+    known_places = {
+        "majestic": (12.9767, 77.5713),
+        "kempegowda bus station": (12.9767, 77.5713),
+        "whitefield": (12.9698, 77.7500),
+        "mg road": (12.9756, 77.6066),
+        "indiranagar": (12.9784, 77.6408),
+        "koramangala": (12.9352, 77.6245),
+        "electronic city": (12.8399, 77.6770),
+        "hebbal": (13.0358, 77.5970),
+        "marathahalli": (12.9569, 77.7011),
+        "jayanagar": (12.9250, 77.5838),
+    }
+
+    normalized = query.strip().casefold()
+
+    # Avoid an external geocoding request for known locations.
+    if normalized in known_places:
+        return known_places[normalized]
+
+    # Fall back to OpenStreetMap geocoding for other places.
     try:
         return ox.geocode(
             f"{query}, Bengaluru, Karnataka, India"
         )
     except Exception:
         return None
+
 
 
 @st.cache_data(ttl=86400, show_spinner=False)
