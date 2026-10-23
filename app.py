@@ -1093,6 +1093,7 @@ with st.expander("Compare routing algorithms", expanded=False):
 # ALGORITHM LABORATORY
 # --------------------------------------------------
 
+
 with st.expander("Algorithm laboratory"):
 
     st.write(
@@ -1100,24 +1101,65 @@ with st.expander("Algorithm laboratory"):
         "road/junction labels."
     )
 
+    st.caption(
+        "Choose an example from the actual loaded road graph. "
+        "The selected label will be searched automatically."
+    )
+
+    # Display up to 20 real named labels from the graph.
+    example_labels = [
+        label
+        for label in labels[:5000]
+        if not label.startswith("Junction ")
+    ][:20]
+
+    if example_labels:
+        selected_example = st.selectbox(
+            "Try an actual graph label",
+            ["— choose an example —"] + example_labels,
+            key="algo_search_example",
+        )
+
+        if selected_example != "— choose an example —":
+            example_index = binary_search(
+                labels_lower,
+                selected_example.casefold(),
+            )
+
+            if example_index >= 0:
+                st.success(
+                    f"Exact match found: {labels[example_index]}"
+                )
+            else:
+                st.warning("No exact match found for this label.")
+    else:
+        st.info(
+            "No named examples were found in the sampled labels. "
+            "Try searching for a full label below."
+        )
+
+    st.caption(
+        "You can also copy a full label from the example above "
+        "and search it manually."
+    )
+
     search = st.text_input(
-        "Search a location",
+        "Or search a full road/junction label",
         key="algo_search",
     )
 
     if search:
-
         index = binary_search(
             labels_lower,
             search.casefold(),
         )
 
         if index >= 0:
-            st.write(f"Exact match: {labels[index]}")
+            st.success(f"Exact match: {labels[index]}")
         else:
-            st.write(
-                "No exact match. Try a full road/junction label "
-                "or use the route planner's geographic lookup."
+            st.info(
+                "No exact match. Use the complete label, "
+                "including the junction ID after the dot."
             )
 
     st.write(
@@ -1137,6 +1179,7 @@ with st.expander("Algorithm laboratory"):
         "**Dijkstra:** minimum estimated travel-time path "
         "with non-negative road costs."
     )
+
 
 
 # --------------------------------------------------
