@@ -39,11 +39,11 @@ def get_tomtom_key():
 # --------------------------------------------------
 
 st.set_page_config(
-    st.warning("DEPLOY CHECK 2026-10-23-A")
     page_title="Bengaluru SmartRoute AI",
     page_icon="🚦",
     layout="wide",
 )
+st.warning("DEPLOY CHECK 2026-10-23-A")
 
 st.markdown(
     """
