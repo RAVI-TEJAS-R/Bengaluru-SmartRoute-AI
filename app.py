@@ -95,7 +95,59 @@ st.markdown(
 # LOAD THE OPENSTREETMAP ROAD GRAPH
 # --------------------------------------------------
 
+
 GRAPH_PATH = "data/graph.graphml"
+GRAPH_DRIVE_FILE_ID = "1bsBRgLb0REv3e1iS4tKagpifyS9a4Fea"
+
+
+def ensure_graph_file():
+    """Download the road graph when it is not already available."""
+    if (
+        os.path.exists(GRAPH_PATH)
+        and os.path.getsize(GRAPH_PATH) > 1_000_000
+    ):
+        return True
+
+    try:
+        import gdown
+
+        os.makedirs(os.path.dirname(GRAPH_PATH), exist_ok=True)
+
+        with st.spinner(
+            "Downloading the Bengaluru road network on first launch..."
+        ):
+            downloaded = gdown.download(
+                id=GRAPH_DRIVE_FILE_ID,
+                output=GRAPH_PATH,
+                quiet=False,
+                fuzzy=True,
+            )
+
+        if (
+            not downloaded
+            or not os.path.exists(GRAPH_PATH)
+            or os.path.getsize(GRAPH_PATH) < 1_000_000
+        ):
+            st.error(
+                "Road graph download failed. Check that the Google Drive "
+                "file is shared with Anyone with the link as Viewer."
+            )
+            return False
+
+        return True
+
+    except Exception as error:
+        st.error(f"Road graph download failed: {error}")
+        return False
+
+
+@st.cache_resource
+def load_graph():
+    if not ensure_graph_file():
+        return None
+
+    try:
+
 
 
 
