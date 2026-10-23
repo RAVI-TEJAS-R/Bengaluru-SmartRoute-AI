@@ -126,10 +126,9 @@ def ensure_graph_file():
             "Downloading the Bengaluru road network on first launch..."
         ):
             downloaded = gdown.download(
-                id=GRAPH_DRIVE_FILE_ID,
-                output=GRAPH_PATH,
-                quiet=False,
-                fuzzy=True,
+            id=GRAPH_DRIVE_FILE_ID,
+            output=GRAPH_PATH,
+            quiet=False
             )
 
         if (
