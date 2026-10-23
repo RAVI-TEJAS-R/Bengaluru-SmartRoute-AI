@@ -8,3 +8,4 @@ cryptography>=42
 pandas>=2.0
 pytest>=8
 gdown>=5.2
+scikit-learn>=1.3
