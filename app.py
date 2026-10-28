@@ -1094,34 +1094,6 @@ with st.expander("Compare routing algorithms", expanded=False):
 # ALGORITHM LABORATORY — INTERACTIVE FIELD GUIDE
 # --------------------------------------------------
 
-with st.expander("🧭 Explore how SmartRoute works", expanded=False):
-
-    st.markdown("""
-    <div style="
-        padding:24px;
-        border-radius:16px;
-        background:linear-gradient(120deg,#102536,#163e4a);
-        color:white;
-        margin-bottom:18px;">
-        <div style="font-size:12px;letter-spacing:1.5px;color:#8de0d0;">
-            SMARTROUTE FIELD GUIDE
-        </div>
-        <div style="font-size:27px;font-weight:750;margin-top:8px;">
-            Three algorithms. Three different jobs.
-        </div>
-        <div style="color:#d5e4ec;margin-top:8px;">
-            Explore how the system finds places, reads incident reports,
-            and calculates routes.
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-
-    tab_search, tab_incident, tab_route = st.tabs([
-        "🔎 Find a place",
-        "🚧 Read an incident",
-        "🗺️ Choose a route",
-    ])
-
     # --------------------------------------------------
     # 1. BINARY SEARCH
     # --------------------------------------------------
