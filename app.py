@@ -1,5 +1,6 @@
 import os
 import time
+import difflib
 
 import streamlit as st
 import pandas as pd
@@ -1091,19 +1092,124 @@ with st.expander("Compare routing algorithms", expanded=False):
 
 # --------------------------------------------------
 # --------------------------------------------------
-# OPTIONAL ROUTING DETAILS
+# USER-FRIENDLY STRING MATCHING TOOLS
 # --------------------------------------------------
 
-with st.expander("How does route planning work?", expanded=False):
+with st.expander("🔎 Find places & check incident messages", expanded=False):
     st.write(
-        "SmartRoute calculates routes across Bengaluru's road network "
-        "using Dijkstra's algorithm and estimated travel times."
+        "Search road/location names or check a traffic message for configured "
+        "incident phrases. These tools demonstrate the same string-search "
+        "algorithms used by SmartRoute."
     )
-    st.write(
-        "When available, TomTom traffic data can influence road costs. "
-        "Route calculation, traffic handling, and algorithm comparisons "
-        "continue to run in the main application."
-    )
+
+    place_tab, incident_tab = st.tabs(["📍 Find a place", "🚧 Check an incident message"])
+
+    with place_tab:
+        place_query = st.text_input(
+            "Road, landmark, or location name",
+            placeholder="For example: Whitefield or MG Road",
+            key="friendly_place_search",
+        )
+
+        if place_query.strip():
+            normalized_place = place_query.strip().casefold()
+            exact_index = binary_search(labels_lower, normalized_place)
+
+            if exact_index >= 0:
+                exact_label = labels[exact_index]
+                st.success("Exact match found")
+                st.write(exact_label)
+                st.caption("Exact names are looked up with Binary Search.")
+            else:
+                partial_matches = [
+                    label for label in labels
+                    if normalized_place in label.casefold()
+                ][:10]
+                if partial_matches:
+                    st.success(f"Found {len(partial_matches)} matching location(s) shown below")
+                    for match in partial_matches:
+                        st.markdown(f"- {match}")
+                    st.caption(
+                        "Partial names are found using substring matching. "
+                        "Choose a complete label above if you need an exact graph-node match."
+                    )
+                else:
+                    # Fuzzy matching suggests likely spellings but never selects a route.
+                    fuzzy_candidates = difflib.get_close_matches(
+                        normalized_place,
+                        [label.casefold() for label in labels],
+                        n=5,
+                        cutoff=0.60,
+                    )
+                    fuzzy_matches = []
+                    seen_fuzzy = set()
+                    for candidate in fuzzy_candidates:
+                        for label in labels:
+                            if label.casefold() == candidate and label not in seen_fuzzy:
+                                fuzzy_matches.append(label)
+                                seen_fuzzy.add(label)
+                                break
+
+                    if fuzzy_matches:
+                        st.warning("No exact or partial match. Possible spelling suggestions:")
+                        for suggestion in fuzzy_matches:
+                            st.markdown(f"- {suggestion}")
+                        st.caption(
+                            "Fuzzy matching is only a suggestion. Confirm the correct place; "
+                            "the app does not automatically route to a guessed location."
+                        )
+                    else:
+                        st.info(
+                            "No named road or landmark matched that text. Try a shorter name, "
+                            "or enter the location in the main route planner to use geocoding."
+                        )
+
+    with incident_tab:
+        incident_demo = st.text_area(
+            "Describe the traffic situation",
+            placeholder="For example: Accident causing a traffic jam near Whitefield",
+            key="friendly_incident_search",
+        )
+        incident_keywords_for_demo = [
+            "accident",
+            "roadblock",
+            "waterlogging",
+            "vehicle breakdown",
+            "road closed",
+            "traffic jam",
+        ]
+
+        if st.button("Check message", key="friendly_check_incident"):
+            if not incident_demo.strip():
+                st.warning("Enter a short traffic message first.")
+            else:
+                detected = horspool_search(
+                    incident_demo.casefold(),
+                    incident_keywords_for_demo,
+                )
+                if detected:
+                    st.success(f"Detected {len(detected)} configured incident phrase(s)")
+                    for phrase in detected:
+                        st.markdown(f"- **{phrase.title()}**")
+                    st.caption(
+                        "Horspool string matching found these phrases. This does not independently "
+                        "verify that an incident is real; it only checks the text you entered."
+                    )
+                else:
+                    st.info(
+                        "No configured incident phrase found. Try words such as accident, "
+                        "road closed, waterlogging, or traffic jam."
+                    )
+
+    with st.expander("How does the matching work?"):
+        st.markdown("""
+        - **Binary Search:** finds an exact label in the sorted list of named locations.
+        - **Substring matching:** finds location names containing the text you typed.
+        - **Fuzzy matching (`difflib`):** suggests similar labels when the query may contain a typo; it never silently selects a location.
+        - **Horspool Search:** checks an incident message for configured phrases.
+
+        These are text-search demonstrations, not a replacement for verified live incident data.
+        """)
 
 
 # RSA INCIDENT SECURITY
