@@ -184,29 +184,28 @@ if G is None:
 
 
 # --------------------------------------------------
-# CREATE SEARCHABLE ROAD AND JUNCTION LABELS
+# CREATE A MEMORY-EFFICIENT SEARCH INDEX
 # --------------------------------------------------
 
 def node_label(item):
     node_id, data = item
-
     name = str(data.get("name", "")).split(",")[0].strip()
-
-    if name:
-        return f"{name} · {node_id}"
-
-    return f"Junction {node_id}"
+    return f"{name} · {node_id}" if name else None
 
 
 @st.cache_resource
 def build_label_index():
-    """Build the large road-label index once, not on every Streamlit rerun."""
-    mapping = {
-        node_label((node_id, data)): node_id
-        for node_id, data in G.nodes(data=True)
-    }
+    """Index named locations only, avoiding one label per junction."""
+    mapping = {}
+
+    for node_id, data in G.nodes(data=True):
+        label = node_label((node_id, data))
+        if label:
+            mapping[label] = node_id
+
     sorted_labels = sorted(mapping.keys(), key=str.casefold)
     lower_labels = [label.casefold() for label in sorted_labels]
+
     return mapping, sorted_labels, lower_labels
 
 
