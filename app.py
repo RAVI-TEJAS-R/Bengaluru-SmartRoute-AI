@@ -1088,101 +1088,293 @@ with st.expander("Compare routing algorithms", expanded=False):
         )
 
 
+
 # --------------------------------------------------
-# ALGORITHM LABORATORY
+# ALGORITHM LABORATORY — INTERACTIVE FIELD GUIDE
 # --------------------------------------------------
 
+with st.expander("🧭 Explore how SmartRoute works", expanded=False):
 
-with st.expander("Algorithm laboratory"):
+    st.markdown("""
+    <div style="
+        padding:24px;
+        border-radius:16px;
+        background:linear-gradient(120deg,#102536,#163e4a);
+        color:white;
+        margin-bottom:18px;">
+        <div style="font-size:12px;letter-spacing:1.5px;color:#8de0d0;">
+            SMARTROUTE FIELD GUIDE
+        </div>
+        <div style="font-size:27px;font-weight:750;margin-top:8px;">
+            Three algorithms. Three different jobs.
+        </div>
+        <div style="color:#d5e4ec;margin-top:8px;">
+            Explore how the system finds places, reads incident reports,
+            and calculates routes.
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
-    st.write(
-        "**Binary Search:** exact lookup over sorted "
-        "road/junction labels."
-    )
+    tab_search, tab_incident, tab_route = st.tabs([
+        "🔎 Find a place",
+        "🚧 Read an incident",
+        "🗺️ Choose a route",
+    ])
 
-    st.caption(
-        "Choose an example from the actual loaded road graph. "
-        "The selected label will be searched automatically."
-    )
+    # --------------------------------------------------
+    # 1. BINARY SEARCH
+    # --------------------------------------------------
 
-    # Display up to 20 real named labels from the graph.
-    
-    example_labels = [
-        label
-        for label in labels
-        if not label.startswith("Junction ")
-    ][:20]
+    with tab_search:
+        st.subheader("Binary Search")
+        st.write("### Find an exact label in a sorted list")
 
-    # If no named roads exist, show real junction labels instead.
-    if not example_labels:
-        example_labels = labels[:20]
-
-
-    if example_labels:
-        selected_example = st.selectbox(
-            "Try an actual graph label",
-            ["— choose an example —"] + example_labels,
-            key="algo_search_example",
+        st.write(
+            "Imagine looking for a word in a dictionary. "
+            "Instead of checking every entry, you look near the middle "
+            "and eliminate half of the remaining choices each time."
         )
 
-        if selected_example != "— choose an example —":
-            example_index = binary_search(
-                labels_lower,
-                selected_example.casefold(),
+        st.info(
+            "**Why SmartRoute uses it:** to demonstrate fast exact "
+            "lookups in a sorted collection of road/location labels."
+        )
+
+        if labels:
+            examples = [
+                label for label in labels
+                if not label.startswith("Junction ")
+            ][:20]
+
+            if not examples:
+                examples = labels[:20]
+
+            st.caption("Choose a real label from the loaded road graph.")
+
+            selected_label = st.selectbox(
+                "Available labels",
+                ["Choose a label..."] + examples,
+                key="algo_search_example",
             )
 
-            if example_index >= 0:
-                st.success(
-                    f"Exact match found: {labels[example_index]}"
+            typed_label = st.text_input(
+                "Or enter the complete label",
+                placeholder="Enter or paste a road/location label",
+                key="algo_search",
+            )
+
+            query = typed_label.strip()
+
+            if not query and selected_label != "Choose a label...":
+                query = selected_label
+
+            if query:
+                result_index = binary_search(
+                    labels_lower,
+                    query.casefold(),
+                )
+
+                if result_index >= 0:
+                    st.success("Exact match found")
+                    st.code(labels[result_index], language="text")
+                    st.caption(
+                        "The label exists in the indexed collection."
+                    )
+                else:
+                    st.warning("No exact match found")
+                    st.write(
+                        "Check the spelling and use the complete label. "
+                        "This demonstration checks exact matches rather "
+                        "than guessing similar names."
+                    )
+
+            st.caption(
+                f"{len(labels):,} named labels available for lookup."
+            )
+
+        else:
+            st.warning(
+                "This road graph currently has no named node labels "
+                "available for the Binary Search demonstration."
+            )
+            st.write(
+                "The route planner may still locate places through "
+                "geocoding and nearest-road lookup. For this demonstration "
+                "to work, the graph needs searchable named labels."
+            )
+
+        with st.expander("How does it work?"):
+            st.markdown("""
+            1. Start with a **sorted list**.
+            2. Compare the target with the middle item.
+            3. Discard the half that cannot contain the target.
+            4. Repeat until the label is found or no items remain.
+
+            For a list of *n* items, Binary Search takes approximately
+            **O(log n)** comparisons.
+            
+            It finds labels; it does **not** calculate driving routes.
+            """)
+
+    # --------------------------------------------------
+    # 2. HORSPOOL SEARCH
+    # --------------------------------------------------
+
+    with tab_incident:
+        st.subheader("Horspool Pattern Search")
+        st.write("### Find important phrases in an incident report")
+
+        st.write(
+            "Think of scanning a message for specific words such as "
+            "'accident' or 'road closed'. Horspool is a string-search "
+            "algorithm that looks for a pattern inside text."
+        )
+
+        keywords = [
+            "accident",
+            "roadblock",
+            "waterlogging",
+            "vehicle breakdown",
+            "road closed",
+            "traffic jam",
+        ]
+
+        incident_demo = st.text_area(
+            "Incident report",
+            value=(
+                incident_text
+                if incident_text.strip()
+                else "Heavy traffic near Whitefield after an accident."
+            ),
+            placeholder="Describe a traffic incident...",
+            key="incident_algorithm_demo",
+        )
+
+        if incident_demo.strip():
+            hits = horspool_search(
+                incident_demo.casefold(),
+                keywords,
+            )
+
+            if hits:
+                st.success(f"{len(hits)} matching phrase(s) detected")
+
+                for hit in hits:
+                    st.markdown(f"- `{hit}`")
+
+                st.caption(
+                    "These phrases match the demonstration's keyword list."
                 )
             else:
-                st.warning("No exact match found for this label.")
-    else:
-        st.info(
-            "No named examples were found in the sampled labels. "
-            "Try searching for a full label below."
-        )
-
-    st.caption(
-        "You can also copy a full label from the example above "
-        "and search it manually."
-    )
-
-    search = st.text_input(
-        "Or search a full road/junction label",
-        key="algo_search",
-    )
-
-    if search:
-        index = binary_search(
-            labels_lower,
-            search.casefold(),
-        )
-
-        if index >= 0:
-            st.success(f"Exact match: {labels[index]}")
+                st.info(
+                    "No configured keywords were found. Try phrases such "
+                    "as 'accident', 'road closed', or 'traffic jam'."
+                )
         else:
-            st.info(
-                "No exact match. Use the complete label, "
-                "including the junction ID after the dot."
-            )
+            st.info("Enter an incident report to test keyword matching.")
 
-    st.write(
-        "**Horspool:** keyword search for incident text."
-    )
+        with st.expander("How does it work?"):
+            st.markdown("""
+            1. Take the incident report as the text.
+            2. Check for configured phrases.
+            3. Report which phrases match.
 
-    st.write(
-        "Detected keywords: "
-        + (
-            ", ".join(incident_hits)
-            if incident_hits
-            else "None detected"
+            Horspool uses pattern shifts to skip unnecessary comparisons.
+            Its performance depends on the text and search pattern.
+
+            **Important:** detecting a keyword does not verify that an
+            incident is real. The app's routing response depends on its
+            configured incident rules.
+            """)
+
+    # --------------------------------------------------
+    # 3. DIJKSTRA
+    # --------------------------------------------------
+
+    with tab_route:
+        st.subheader("Dijkstra's Algorithm")
+        st.write("### Find the route with the lowest total cost")
+
+        st.write(
+            "Imagine intersections as dots on a map and roads as lines "
+            "connecting them. Each road has a cost. SmartRoute can use "
+            "estimated travel time as that cost."
         )
-    )
 
-    st.write(
-        "**Dijkstra:** minimum estimated travel-time path "
-        "with non-negative road costs."
+        st.markdown("""
+        <div style="
+            border:1px solid rgba(128,150,170,.3);
+            border-radius:14px;
+            padding:20px;
+            margin:12px 0;">
+            <div style="display:flex;justify-content:space-between;
+                        align-items:center;gap:10px;flex-wrap:wrap;">
+                <div style="text-align:center;min-width:90px;">
+                    <div style="font-size:28px;">📍</div>
+                    <b>Start</b>
+                    <div style="font-size:12px;color:#9ca3af;">
+                        Where you begin
+                    </div>
+                </div>
+                <div style="font-size:22px;color:#8de0d0;">→</div>
+                <div style="text-align:center;min-width:90px;">
+                    <div style="font-size:28px;">🛣️</div>
+                    <b>Roads</b>
+                    <div style="font-size:12px;color:#9ca3af;">
+                        Each has a cost
+                    </div>
+                </div>
+                <div style="font-size:22px;color:#8de0d0;">→</div>
+                <div style="text-align:center;min-width:90px;">
+                    <div style="font-size:28px;">🏁</div>
+                    <b>Destination</b>
+                    <div style="font-size:12px;color:#9ca3af;">
+                        Lowest-cost path
+                    </div>
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown("#### The map in simple terms")
+
+        st.markdown("""
+        - **Node:** a point or intersection.
+        - **Edge:** a road connecting nodes.
+        - **Cost:** estimated time to travel along a road.
+        - **Path:** a sequence of connected roads.
+        """)
+
+        st.success(
+            "If road costs represent travel time, Dijkstra searches "
+            "for the path with the lowest total estimated travel time."
+        )
+
+        st.warning(
+            "Dijkstra requires non-negative road costs. The route with "
+            "the lowest travel time is not necessarily the shortest "
+            "route by distance."
+        )
+
+        with st.expander("How does it work?"):
+            st.markdown("""
+            1. Start at the origin with a cost of zero.
+            2. Consider reachable neighbouring intersections.
+            3. Keep track of the lowest known cost to each intersection.
+            4. Continue with the cheapest unexplored option.
+            5. Reconstruct the route when the destination is reached.
+
+            Dijkstra's algorithm is commonly described using
+            **O((V + E) log V)** time with a priority queue and a suitable
+            graph representation, where *V* is the number of nodes and
+            *E* is the number of edges.
+            """)
+
+    st.divider()
+    st.caption(
+        "Educational guide · Results depend on the loaded OpenStreetMap "
+        "network, configured routing costs, available traffic data, "
+        "and incident rules."
     )
 
 
