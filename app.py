@@ -315,53 +315,55 @@ def resolve(query):
 # SIDEBAR: ROUTE PLANNER
 # --------------------------------------------------
 
-with st.sidebar:
-    st.header("Plan your journey")
-    with st.form("route_planner_form"):
-        st.caption("Enter two places in Bengaluru, then find a route.")
 
+# --------------------------------------------------
+# MAIN PAGE: ROUTE PLANNER
+# --------------------------------------------------
+
+st.subheader("Where would you like to go?")
+
+with st.form("route_planner_form"):
+    col_from, col_to = st.columns(2)
+
+    with col_from:
         start_q = st.text_input(
-            "Starting point",
+            "From",
             "Majestic",
-            help="Try Majestic, MG Road, Indiranagar, or another Bengaluru landmark.",
+            placeholder="Enter starting point",
         )
 
+    with col_to:
         end_q = st.text_input(
-            "Destination",
+            "To",
             "Whitefield",
-            help="Enter a Bengaluru area, landmark, or road name.",
+            placeholder="Enter destination",
         )
 
-        with st.expander("Advanced options", expanded=False):
-            st.caption("Optional settings. You can find a route without filling in an incident report.")
-            
-            traffic_key = get_tomtom_key()
+    with st.expander("Advanced options", expanded=False):
+        st.caption("Optional settings")
 
+        traffic_key = get_tomtom_key()
 
-            use_live = st.checkbox(
-                "Try to use TomTom live traffic",
-                value=True,
-                help="If the live feed fails, the app will use available road-speed estimates.",
-            )
-
-            incident_text = st.text_area(
-                "Optional traffic incident report",
-                placeholder="Example: Accident near MG Road; roadblock on a junction",
-                help="Used to test incident keyword matching and incident-aware routing.",
-            )
-
-            closed_words = st.text_input(
-                "Words that indicate a closure",
-                "road closed, roadblock",
-            )
-
-        run = st.form_submit_button(
-            "Find my route",
-            type="primary",
-            use_container_width=True,
+        use_live = st.checkbox(
+            "Use TomTom live traffic",
+            value=True,
         )
 
-    st.caption("Traffic note: when live traffic is unavailable, the app uses estimated road speeds. It does not generate fake live traffic.")
+        incident_text = st.text_area(
+            "Traffic incident (optional)",
+            placeholder="e.g. Accident near MG Road",
+        )
+
+        closed_words = st.text_input(
+            "Road closure keywords",
+            "road closed, roadblock",
+        )
+
+    run = st.form_submit_button(
+        "🔎 Find my route",
+        type="primary",
+        use_container_width=True,
+    )
 
 
     # --------------------------------------------------
