@@ -107,8 +107,7 @@ st.markdown(
 
 
 GRAPH_PATH = "data/graph.graphml"
-GRAPH_DRIVE_FILE_ID = "1bsBRgLb0REv3e1iS4tKagpifyS9a4Fea"
-
+GRAPH_DRIVE_FILE_ID = "1scGHc27q5kcbpmGYrdjChq_lCkb0G8lY"
 
 def ensure_graph_file():
     """Download the road graph when it is not already available."""
